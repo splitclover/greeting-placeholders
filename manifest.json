@@ -1,0 +1,11 @@
+{
+    "display_name": "Greeting placeholders",
+    "loading_order": 39,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "",
+    "author": "SplitClover",
+    "version": "1.0.0",
+    "homePage": ""
+}
