@@ -118,7 +118,7 @@ async function handlePlaceholders() {
 
 async function replacePlaceholdersInChat(filledPlaceholders) {
     const context = getContext();
-    if (!context.chat || !context.chat[0] || !context.chat[0].swipes) {
+    if (!context.chat || !context.chat[0]) {
         console.log("Chat or swipes not found in context.");
         return;
     }
