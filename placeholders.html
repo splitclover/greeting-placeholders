@@ -1,0 +1,37 @@
+<div class="placeholder_entry">
+    <form class="placeholder_entry_form placeholder-card-entry">
+        <div class="inline-drawer wide100p">
+            <div class="inline-drawer-toggle inline-drawer-header gap5px padding0">
+                <div class="gap5px world_entry_thin_controls wide100p alignitemscenter">
+                    <div class="fa-fw fa-solid inline-drawer-icon interactable down fa-circle-chevron-down" tabindex="0"></div>
+                    <div style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start; width: 100%;">
+                        <small style="align-self: flex-start;">Plaintext name</small>
+                        <input type="text" class="text_pole" name="plain_name" placeholder="Plain Name" required style="flex: 1; margin: 0 5px; width: 100%;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; justify-content: center; align-items: flex-start; width: 100%;">
+                        <small style="align-self: flex-start;">Variable name</small>
+                        <input type="text" class="text_pole" name="variable_name" placeholder="Variable Name (required)" required style="flex: 1; margin: 0 5px; width: 100%;">
+                    </div>
+                    <i class="menu_button duplicate_entry_button fa-solid fa-paste interactable" title="Duplicate entry" type="submit" value="" tabindex="0"></i>
+                    <i class="menu_button delete_entry_button fa-solid fa-trash-can interactable" title="Delete entry" type="submit" value="" tabindex="0"></i>
+                </div>
+            </div>
+            <div class="inline-drawer-content flex-container paddingBottom5px wide100p" style="display: none;">
+                <div style="display: flex; flex-direction: column; width: 100%;">
+                    <div style="margin-bottom: 10px;">
+                        <small>Fallback/Default Value</small>
+                        <input type="text" class="text_pole wide100p" name="fallback_value" placeholder="Fallback/Default Value">
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <small>Preset Values (comma-separated)</small>
+                        <textarea class="text_pole wide100p" name="preset_values" rows="1" placeholder="Value1, Value2, Value3"></textarea>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <small>Example Usage</small>
+                        <textarea class="text_pole wide100p" name="example_usage" rows="3" placeholder="Example Usage"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
