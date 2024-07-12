@@ -105,42 +105,37 @@ async function handlePlaceholders() {
     const result = await popup.show();
 
     if (result === POPUP_RESULT.AFFIRMATIVE) {
-        // User clicked "Fill Placeholders"
         const filledPlaceholders = await fillPlaceholders(placeholderData.placeholders);
 
         if (filledPlaceholders) {
-            await replacePlaceholdersInChat(filledPlaceholders);
+            const context = getContext();
+            replacePlaceholdersInChat(filledPlaceholders, context);
+            await context.saveChat();
+            await context.reloadCurrentChat();
         }
-    } else {
-        // User clicked "Skip" or closed the popup
     }
 }
 
-async function replacePlaceholdersInChat(filledPlaceholders) {
-    const context = getContext();
-    if (!context.chat || !context.chat[0]) {
-        console.log("Chat or swipes not found in context.");
-        return;
+function replacePlaceholdersInChat(filledPlaceholders, context) {
+    if (context.chat[0].swipes && context.chat[0].swipes.length > 0) {
+        // Handle multiple swipes
+        context.chat[0].swipes = context.chat[0].swipes.map(swipe => {
+            return replacePlaceholders(swipe, filledPlaceholders);
+        });
+
+        // Update the current message to the updated swipe
+        context.chat[0].mes = context.chat[0].swipes[context.chat[0].swipe_id || 0];
+    } else {
+        // Handle single message
+        context.chat[0].mes = replacePlaceholders(context.chat[0].mes, filledPlaceholders);
     }
+}
 
-    const swipes = context.chat[0].swipes;
-
-    swipes.forEach((swipe, index) => {
-        let updatedMessage = swipe;
-
-        for (const [varName, value] of Object.entries(filledPlaceholders)) {
-            const placeholder = `{{pl::${varName}}}`;
-            updatedMessage = updatedMessage.replace(new RegExp(placeholder, 'g'), value);
-        }
-
-        context.chat[0].swipes[index] = updatedMessage;
-    });
-
-    const swipe_id = context.chat[0].swipe_id;
-    context.chat[0].mes = context.chat[0].swipes[swipe_id];
-    await context.saveChat();
-
-    await context.reloadCurrentChat();
+function replacePlaceholders(text, filledPlaceholders) {
+    return Object.entries(filledPlaceholders).reduce((updatedText, [varName, value]) => {
+        const placeholder = `{{pl::${varName}}}`;
+        return updatedText.replace(new RegExp(placeholder, 'g'), value);
+    }, text);
 }
 
 async function fillPlaceholders(placeholders) {
