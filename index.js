@@ -166,7 +166,7 @@ async function fillPlaceholders(placeholders) {
                             <h4>Enter a value for: ${sanitizedPlainName}</h4>
                             <input type="text" class="text_pole wide100p" name="${sanitizedVariableName}" placeholder="${sanitizedPlainName}" value="${placeholderValues[sanitizedVariableName] || sanitizedFallbackValue}">
                             ${placeholder.presetValues ? createPresetDropdown(placeholder) : ''}
-                            ${sanitizedExampleUsage ? `<hr><pre class="example-usage mes_text">${sanitizedExampleUsage}</pre>` : ''}
+                            ${sanitizedExampleUsage ? `<hr><pre class="example-usage mes_text" style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">${sanitizedExampleUsage}</pre>` : ''}
                         </div>
                     </div>
                 </div>
@@ -181,9 +181,15 @@ async function fillPlaceholders(placeholders) {
                 let example = placeholder.exampleUsage;
                 const value = input.val() || placeholder.fallbackValue || '';
                 const macro = `{{pl::${placeholder.variableName}}}`;
-                example = example.replace(macro, `<u>${value}</u>`);
+                const macroRegex = new RegExp(escapeRegExp(macro), 'g');
+                example = example.replace(macroRegex, `<u>${value}</u>`);
                 exampleUsage.html(example);
             }
+        }
+
+        // Helper function to escape special characters in the macro for use in a regex
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
         input.on('input', function() {
@@ -262,6 +268,7 @@ async function fillPlaceholders(placeholders) {
         'Fill in Placeholders',
         {
             okButton: 'Finish',
+            allowVerticalScrolling: true,
             cancelButton: 'Cancel'
         }
     );
