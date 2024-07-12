@@ -6,6 +6,7 @@ The Greeting Placeholders extension enhances character interactions by allowing 
 
 ## Features
 
+- The placeholders are saved to the card, allows seamless export to easily share
 - Create custom placeholders for each character
 - Dynamically fill placeholder values at the start of each new chat
 - Supports default values and preset options for placeholders
