@@ -212,7 +212,16 @@ async function fillPlaceholders(placeholders) {
     }
 
     function createPresetDropdown(placeholder) {
-        const presets = placeholder.presetValues.split(',').map(v => sanitizeAndEncode(v.trim()));
+        let presets = placeholder.presetValues ? placeholder.presetValues.split(',').map(v => v.trim()) : [];
+
+        // Remove empty option if it's just a single trailing comma
+        if (presets.length > 0 && presets[presets.length - 1] === '') {
+            presets.pop();
+        }
+
+        // Sanitize and encode non-empty presets
+        presets = presets.map(v => v === '' ? v : sanitizeAndEncode(v));
+
         let options = '<option value="">Select a preset (optional)</option>';
         presets.forEach(preset => {
             options += `<option value="${preset}">${preset}</option>`;
@@ -323,6 +332,7 @@ async function openPlaceholderMenu() {
     popupContainer.append(header);
     popupContainer.append(placeholderList);
 
+
     // Function to add a new placeholder entry
     function addPlaceholderEntry(data = {}) {
         const entry = $(placeholderTemplate);
@@ -334,7 +344,23 @@ async function openPlaceholderMenu() {
         if (data.exampleUsage) entry.find('[name="example_usage"]').val(data.exampleUsage);
         if (data.presetValues) entry.find('[name="preset_values"]').val(data.presetValues);
 
-        // Add event listeners for duplicate and delete buttons
+        // Add event listeners for move up, move down, duplicate and delete buttons
+        entry.find('.move_entry_up_button').on('click', function(e) {
+            e.stopPropagation();
+            const prevEntry = entry.prev('.placeholder_entry');
+            if (prevEntry.length) {
+                entry.insertBefore(prevEntry);
+            }
+        });
+
+        entry.find('.move_entry_down_button').on('click', function(e) {
+            e.stopPropagation();
+            const nextEntry = entry.next('.placeholder_entry');
+            if (nextEntry.length) {
+                entry.insertAfter(nextEntry);
+            }
+        });
+
         entry.find('.duplicate_entry_button').on('click', function(e) {
             e.stopPropagation();
             const newEntry = addPlaceholderEntry(getEntryData(entry));
