@@ -103,16 +103,23 @@ async function handlePlaceholders() {
     );
 
     const result = await popup.show();
-
+    let filledPlaceholders = {};
     if (result === POPUP_RESULT.AFFIRMATIVE) {
-        const filledPlaceholders = await fillPlaceholders(placeholderData.placeholders);
+        filledPlaceholders = await fillPlaceholders(placeholderData.placeholders);
+    }
 
-        if (filledPlaceholders) {
-            const context = getContext();
-            replacePlaceholdersInChat(filledPlaceholders, context);
-            await context.saveChat();
-            await context.reloadCurrentChat();
+    // Populate any missing variables with fallback values
+    placeholderData.placeholders.forEach(placeholder => {
+        if (!filledPlaceholders.hasOwnProperty(placeholder.variableName) && placeholder.fallbackValue) {
+            filledPlaceholders[placeholder.variableName] = placeholder.fallbackValue;
         }
+    });
+
+    if (filledPlaceholders != {}) {
+        const context = getContext();
+        replacePlaceholdersInChat(filledPlaceholders, context);
+        await context.saveChat();
+        await context.reloadCurrentChat();
     }
 }
 
@@ -134,7 +141,8 @@ function replacePlaceholdersInChat(filledPlaceholders, context) {
 function replacePlaceholders(text, filledPlaceholders) {
     return Object.entries(filledPlaceholders).reduce((updatedText, [varName, value]) => {
         const placeholder = `{{pl::${varName}}}`;
-        return updatedText.replace(new RegExp(placeholder, 'g'), value);
+        const placeholder2 = `{{//pl::${varName}}}`;
+        return updatedText.replace(new RegExp(placeholder, 'g'), value).replace(new RegExp(placeholder2, 'g'), value);
     }, text);
 }
 
@@ -285,16 +293,9 @@ async function fillPlaceholders(placeholders) {
     const result = await popup.show();
 
     if (result === POPUP_RESULT.AFFIRMATIVE) {
-        // Populate any missing variables with fallback values
-        placeholders.forEach(placeholder => {
-            if (!placeholderValues.hasOwnProperty(placeholder.variableName) && placeholder.fallbackValue) {
-                placeholderValues[placeholder.variableName] = placeholder.fallbackValue;
-            }
-        });
-
         return placeholderValues;
     } else {
-        return null;
+        return {};
     }
 }
 
