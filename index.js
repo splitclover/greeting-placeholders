@@ -1,5 +1,5 @@
 // In case something breaks
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 const extensionName = "greeting-placeholders";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
@@ -8,20 +8,65 @@ import { Popup, POPUP_TYPE, POPUP_RESULT } from "../../../popup.js";
 import { eventSource, event_types, this_chid } from "../../../../script.js";
 
 
-eventSource.on(event_types.CHAT_CREATED, handlePlaceholders);
+function addPlaceholderButtonToMessage(messageId) {
+    if (messageId !== 0) return; // Only process messages with mesid="0"
+
+    const messageElement = document.querySelector('.mes.last_mes[mesid="0"] .mes_block .mes_text');
+    if (!messageElement) return;
+
+    // Find and replace the macro
+    const macroRegex = /{{plbutton::((?:-?\d+,)*-?\d+)}}|{{plbutton}}/g;
+    let messageText = messageElement.innerHTML;
+    messageText = messageText.replace(macroRegex, (match, groupIds) => {
+        // If no group IDs are provided, default to -1
+        const parsedGroupIds = groupIds ? groupIds.split(',').map(Number) : [-1];
+
+        // Create the button element
+        const button = document.createElement('button');
+        button.textContent = 'Fill Placeholders';
+        button.classList.add('placeholder-button', 'menu_button', 'menu_button_icon');
+
+        const icon = document.createElement('i');
+        icon.classList.add('fa-solid', 'fa-pencil');
+
+        // Insert the icon at the beginning of the button
+        button.insertBefore(icon, button.firstChild);
+
+        // Add a data attribute to store the group IDs
+        button.dataset.groupIds = parsedGroupIds.join(',');
+
+        return button.outerHTML;
+    });
+
+    // Set the innerHTML first
+    messageElement.innerHTML = messageText;
+
+    // Find the newly added button(s) and attach the event listener
+    const buttons = messageElement.querySelectorAll('.placeholder-button');
+    buttons.forEach(button => {
+        const groupIds = button.dataset.groupIds.split(',').map(Number);
+        button.addEventListener('click', () => {
+            handlePlaceholders(groupIds);
+        });
+    });
+}
+
+// Add event listeners for both events
+eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, addPlaceholderButtonToMessage);
+eventSource.on(event_types.MESSAGE_SWIPED, addPlaceholderButtonToMessage);
 
 
 const button = document.createElement('div');
 const icon1 = document.createElement('i');
 icon1.className = 'fa-solid fa-comment';
 const text = document.createElement('span');
-text.textContent = 'Fill Placeholders';
+text.textContent = 'Reset Placeholders';
 button.tabIndex = 0;
 button.classList.add('list-group-item', 'flex-container', 'flexGap5', 'interactable');
 button.appendChild(icon1);
 button.appendChild(text);
 button.addEventListener('click', () => {
-    handlePlaceholders();
+    $('#firstmessage_textarea').trigger('input')
 });
 
 const container = document.getElementById('extensionsMenu');
@@ -58,13 +103,20 @@ editPlaceholdersButton.addEventListener('click', () => openPlaceholderMenu());
 altGreetingsButton.parentNode.insertBefore(editPlaceholdersButton, altGreetingsButton);
 
 
-async function handlePlaceholders() {
+async function handlePlaceholders(groupIds = [-1]) {
     // Check if there's any placeholder data
     const placeholderData = await getExistingPlaceholders();
 
+    // Filter placeholders based on groupIds only if not -1 (meaning all)
+    if (groupIds[0] !== -1) {
+        placeholderData.placeholders = placeholderData.placeholders.filter(placeholder => {
+            return groupIds.includes(parseInt(placeholder.group_id, 10));
+        });
+    }
+
     // If there's no placeholder data or no placeholders, return early
     if (!placeholderData.placeholders || placeholderData.placeholders.length === 0) {
-        console.log("No placeholders found.");
+        console.log("No placeholders found for group IDs:", groupIds);
         return;
     }
 
@@ -124,14 +176,14 @@ async function handlePlaceholders() {
 }
 
 function replacePlaceholdersInChat(filledPlaceholders, context) {
+    const currentSwipeId = context.chat[0].swipe_id || 0; // Get current swipe ID
+
     if (context.chat[0].swipes && context.chat[0].swipes.length > 0) {
         // Handle multiple swipes
-        context.chat[0].swipes = context.chat[0].swipes.map(swipe => {
-            return replacePlaceholders(swipe, filledPlaceholders);
-        });
+        context.chat[0].swipes[currentSwipeId] = replacePlaceholders(context.chat[0].swipes[currentSwipeId], filledPlaceholders);
 
         // Update the current message to the updated swipe
-        context.chat[0].mes = context.chat[0].swipes[context.chat[0].swipe_id || 0];
+        context.chat[0].mes = context.chat[0].swipes[currentSwipeId];
     } else {
         // Handle single message
         context.chat[0].mes = replacePlaceholders(context.chat[0].mes, filledPlaceholders);
@@ -139,11 +191,20 @@ function replacePlaceholdersInChat(filledPlaceholders, context) {
 }
 
 function replacePlaceholders(text, filledPlaceholders) {
-    return Object.entries(filledPlaceholders).reduce((updatedText, [varName, value]) => {
+    let updatedText = text;
+
+    // Replace placeholders
+    for (const varName in filledPlaceholders) {
         const placeholder = `{{pl::${varName}}}`;
         const placeholder2 = `{{//pl::${varName}}}`;
-        return updatedText.replace(new RegExp(placeholder, 'g'), value).replace(new RegExp(placeholder2, 'g'), value);
-    }, text);
+        updatedText = updatedText.replace(new RegExp(placeholder, 'g'), filledPlaceholders[varName]);
+        updatedText = updatedText.replace(new RegExp(placeholder2, 'g'), filledPlaceholders[varName]);
+    }
+
+    // Remove all plbutton macros
+    updatedText = updatedText.replace(/{{plbutton}}|{{plbutton::((?:-?\d+,)*-?\d+)}}/g, '');
+
+    return updatedText;
 }
 
 async function fillPlaceholders(placeholders) {
@@ -344,6 +405,7 @@ async function openPlaceholderMenu() {
         if (data.fallbackValue) entry.find('[name="fallback_value"]').val(data.fallbackValue);
         if (data.exampleUsage) entry.find('[name="example_usage"]').val(data.exampleUsage);
         if (data.presetValues) entry.find('[name="preset_values"]').val(data.presetValues);
+        if (data.group_id) entry.find('[name="group_id"]').val(data.group_id);
 
         // Add event listeners for move up, move down, duplicate and delete buttons
         entry.find('.move_entry_up_button').on('click', function(e) {
@@ -384,7 +446,8 @@ async function openPlaceholderMenu() {
             variableName: entry.find('[name="variable_name"]').val(),
             fallbackValue: entry.find('[name="fallback_value"]').val(),
             exampleUsage: entry.find('[name="example_usage"]').val(),
-            presetValues: entry.find('[name="preset_values"]').val()
+            presetValues: entry.find('[name="preset_values"]').val(),
+            group_id: entry.find('[name="group_id"]').val(),
         };
     }
 
@@ -436,14 +499,18 @@ async function getExistingPlaceholders() {
         };
     }
 
-    // Here you can add logic to handle different versions if needed
-    if (data.version < CURRENT_VERSION) {
-        // Convert old data structure to new one if necessary
-        // For now, we'll just update the version number
-        data.version = CURRENT_VERSION;
+    // Version handling
+    // Version 2 added group ids
+    if (data.version < 2) {
+        // Update version 1 data to version 2
+        data.version = 2;
+        data.placeholders = data.placeholders.map(placeholder => ({
+            ...placeholder,
+            group_id: '-1' // Fill group_id with '-1' for version 1 data
+        }));
     }
 
-    return data;
+    return JSON.parse(JSON.stringify(data));
 }
 
 
@@ -458,7 +525,8 @@ async function savePlaceholders(placeholders) {
             variableName: DOMPurify.sanitize(placeholder.variableName),
             fallbackValue: DOMPurify.sanitize(placeholder.fallbackValue),
             exampleUsage: DOMPurify.sanitize(placeholder.exampleUsage),
-            presetValues: DOMPurify.sanitize(placeholder.presetValues)
+            presetValues: DOMPurify.sanitize(placeholder.presetValues),
+            group_id: placeholder.group_id ? DOMPurify.sanitize(placeholder.group_id) : -1,
         };
 
         if (!seenVariableNames.has(sanitizedPlaceholder.variableName)) {
