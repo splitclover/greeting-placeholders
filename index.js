@@ -281,7 +281,8 @@ async function fillPlaceholders(placeholders) {
     }
 
     function createPresetDropdown(placeholder) {
-        let presets = placeholder.presetValues ? placeholder.presetValues.split(',').map(v => v.trim()) : [];
+        // Split the preset values by commas, but ignore escaped commas
+        let presets = placeholder.presetValues ? placeholder.presetValues.match(/(?:\\.|[^,])+/g).map(v => v.trim().replace(/\\,/g, ',').replace(/\\\\/g, '\\')) : [];
 
         // Remove empty option if it's just a single trailing comma
         if (presets.length > 0 && presets[presets.length - 1] === '') {
