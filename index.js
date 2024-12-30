@@ -190,16 +190,28 @@ function replacePlaceholdersInChat(filledPlaceholders, context) {
     }
 }
 
-function replacePlaceholders(text, filledPlaceholders) {
-    let updatedText = text;
+const MAX_PLACEHOLDER_ITERATIONS = 10;
 
-    // Replace placeholders
-    for (const varName in filledPlaceholders) {
-        const placeholder = `{{pl::${varName}}}`;
-        const placeholder2 = `{{//pl::${varName}}}`;
-        updatedText = updatedText.replace(new RegExp(placeholder, 'g'), filledPlaceholders[varName]);
-        updatedText = updatedText.replace(new RegExp(placeholder2, 'g'), filledPlaceholders[varName]);
-    }
+function replacePlaceholders(text, filledPlaceholders) {
+    let prevText;
+    let updatedText = text;
+    let iterations = 0;
+
+    do {
+        prevText = updatedText;
+        for (const [varName, value] of Object.entries(filledPlaceholders)) {
+            const placeholder = `{{pl::${varName}}}`;
+            const placeholder2 = `{{//pl::${varName}}}`;
+            updatedText = updatedText.replace(new RegExp(placeholder, 'g'), value);
+            updatedText = updatedText.replace(new RegExp(placeholder2, 'g'), value);
+        }
+        iterations++;
+
+        if (iterations >= MAX_PLACEHOLDER_ITERATIONS) {
+            toastr.warning('Max placeholder replacement iterations reached - possible circular reference');
+            break;
+        }
+    } while (prevText !== updatedText);
 
     // Remove all plbutton macros
     updatedText = updatedText.replace(/{{plbutton}}|{{plbutton::((?:-?\d+,)*-?\d+)}}/g, '');
@@ -290,7 +302,12 @@ async function fillPlaceholders(placeholders) {
         }
 
         // Sanitize and encode non-empty presets
-        presets = presets.map(v => v === '' ? v : sanitizeAndEncode(v));
+        presets = presets.map(v => {
+            if (v === '') return v;
+            const sanitized = sanitizeAndEncode(v);
+            // Escape quotes for HTML attribute
+            return sanitized.replace(/"/g, '&quot;');
+        });
 
         let options = '<option value="">Select a preset (optional)</option>';
         presets.forEach(preset => {
@@ -299,7 +316,7 @@ async function fillPlaceholders(placeholders) {
         return `
             <small>Presets</small>
             <select class="text_pole wide100p" style="margin-top: 5px;">
-                ${options}
+            ${options}
             </select>
         `;
     }
