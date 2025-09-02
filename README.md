@@ -1,5 +1,8 @@
 # Greeting Placeholders Extension
 
+> [!IMPORTANT]
+> **2025.09.02** - This is extension is no longer maintained for the foreseeable future.
+
 ## Overview
 
 The Greeting Placeholders extension enhances character interactions by allowing dynamic, customizable elements in character greetings for SillyTavern.
@@ -33,7 +36,3 @@ For detailed usage instructions, please refer to the [Wiki](https://github.com/s
 ## Contributing
 
 Contributions to improve the Greeting Placeholders extension are welcome. Please fork the repository and submit a pull request with your changes.
-
----
-
-Contact: splitclover@proton.me
